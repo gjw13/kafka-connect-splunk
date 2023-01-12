@@ -16,7 +16,7 @@
 package com.splunk.hecclient;
 
 /**
- * HecEmptyEventException is an exception which is triggered during the creation of an Event(JsonEvent or RawEvent)
+ * HecEmptyEventException is an exception which is triggered during the creation of an Event(JsonEvent, RawEvent, or MetricEvent)
  * when Event is created with an empty String ("").
  *
  * @version     1.1.0

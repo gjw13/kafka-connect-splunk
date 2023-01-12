@@ -105,6 +105,7 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
         records = bufferedRecords;
         bufferedRecords = new ArrayList<>();
         lastFlushed = System.currentTimeMillis();
+        // TODO: implement handleMetric logic here
         if (connectorConfig.raw) {
             /* /raw endpoint */
             handleRaw(records);
