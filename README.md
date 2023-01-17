@@ -106,6 +106,7 @@ Use the below schema to configure Splunk Connect for Kafka
    "splunk.hec.token": "<Splunk-HEC-Token>",
    "splunk.hec.raw": "<true|false>",
    "splunk.hec.raw.line.breaker": "<line breaker separator>",
+   "splunk.hec.metric": "<true|false>",
    "splunk.hec.json.event.enrichment": "<key value pairs separated by comma, only applicable to /event HEC>",
    "value.converter": "<converter class used to convert between Kafka Connect format and the serialized form that is written to Kafka>",
    "value.converter.schema.registry.url": "<Schema-Registry-URL>",
@@ -189,6 +190,7 @@ Use the below schema to configure Splunk Connect for Kafka
 | Name              | Description                | Default Value  |
 |--------           |----------------------------|-----------------------|
 | `splunk.hec.raw` | Set to `true` in order for Splunk software to ingest data using the the /raw HEC endpoint.`false` will use the /event endpoint |`false`|
+| `splunk.hec.metric` | Set to true in order for Splunk software to ingest data to a metric index using the /services/collector endpoint. `false` which will use the /services/collector/event endpoint. Cannot be used with `splunk.hec.raw` set to true | `false` |
 ##### /raw endpoint only
 | Name              | Description                | Default Value  |
 |--------           |----------------------------|-----------------------|
