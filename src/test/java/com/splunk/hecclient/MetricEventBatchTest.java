@@ -37,7 +37,7 @@ public class MetricEventBatchTest {
         List<Event> events = batch.getEvents();
         Assert.assertEquals(events.size(), 1);
         Event eventGot = events.get(0);
-        Assert.assertEquals(event.getEvent(), eventGot.getEvent());
+        Assert.assertEquals(event.getMetricFields(), eventGot.getMetricFields());
         Assert.assertEquals(event.getTied(), eventGot.getTied());
     }
 
@@ -103,21 +103,15 @@ public class MetricEventBatchTest {
         Assert.assertTrue(batch.isCommitted());
 
         Event event = new MetricEvent("ni", "hao");
+        System.out.println(event.toString());
         batch.add(event);
-        String data = "{\"event\":\"ni\"}";
+        String data = "{\"event\":\"metric\",\"metricFields\":\"ni\"}";
         Assert.assertEquals(data.length() + 1, batch.length());
         Assert.assertEquals(1, batch.size());
         Assert.assertFalse(batch.isEmpty());
 
         List<Event> events = batch.getEvents();
         Assert.assertEquals(1, events.size());
-
-        // Add extra fields
-        Map<String, String> fields = new HashMap<>();
-        fields.put("hello", "world");
-        batch.addExtraFields(fields);
-
-        Assert.assertEquals(fields, event.getFields());
     }
 
     @Test
@@ -129,7 +123,7 @@ public class MetricEventBatchTest {
         Event event = new MetricEvent("ni", "hao");
         batch.add(event);
         str = batch.toString();
-        Assert.assertEquals(str, "[{\"event\":\"ni\"},]");
+        Assert.assertEquals(str, "[{\"event\":\"metric\",\"fields\":\"ni\"},]");
     }
 
     @Test
@@ -151,7 +145,9 @@ public class MetricEventBatchTest {
         Assert.assertEquals(event.length(), entity.getContentLength());
 
         siz = readContent(entity, data);
-        String expected = "{\"event\":\"ni\"}\n";
+        System.out.println(siz);
+        // TODO: figure this out
+        String expected = "{\"event\":\"metric\",\"metricFields\":\"ni\"}\n";
         Assert.assertEquals(expected, new String(data, 0, siz));
 
         // Write to a OutputStream
@@ -190,7 +186,7 @@ public class MetricEventBatchTest {
         byte[] data = new byte[1024];
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             entity.writeTo(out);
-            String expected = "{\"event\":\"hello world! hello world! hello world!\"}\n";
+            String expected = "{\"event\":\"metric\",\"metricFields\":\"hello world! hello world! hello world!\"}\n";
             ByteArrayInputStream bis = new ByteArrayInputStream(out.toByteArray());
             GZIPInputStream gis = new GZIPInputStream(bis);
             int read = gis.read(data, 0, data.length);

@@ -105,7 +105,6 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
         records = bufferedRecords;
         bufferedRecords = new ArrayList<>();
         lastFlushed = System.currentTimeMillis();
-        // TODO: implement handleMetric logic here
         if (connectorConfig.raw) {
             /* /services/collector/raw endpoint */
             handleRaw(records);
@@ -280,7 +279,7 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
     }
 
     private void handleMetric(final Collection<SinkRecord> records) {
-        EventBatch batch = new MetricEventBatch();
+        MetricEventBatch batch = new MetricEventBatch();
         batch.setEnableCompression(connectorConfig.enableCompression);
         sendEvents(records, batch);
     }
@@ -314,6 +313,36 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
             send(batch);
         }
     }
+
+    // private void sendMetrics(final Collection<SinkRecord> records, MetricBatch batch) {
+    //     for (final SinkRecord record: records) {
+    //         Metric metric;
+    //         try {
+    //             metric = createHecMetricFrom(record);
+    //         } catch (HecEmptyEventException | HecNullEventException ex) {
+    //             log.warn("Ignoring Null/Empty event for topicPartitionOffset=({}, {}, {})",
+    //                     record.topic(), record.kafkaPartition(), record.kafkaOffset(), ex);
+    //             continue;
+    //         } catch (HecException ex) {
+    //             log.error("ignore malformed event for topicPartitionOffset=({}, {}, {})",
+    //                     record.topic(), record.kafkaPartition(), record.kafkaOffset(), ex);
+    //             metric = createHecEventFromMalformed(record);
+    //         }
+
+    //         batch.add(metric);
+    //         if (batch.size() >= connectorConfig.maxBatchSize) {
+    //             send(batch);
+    //             // start a new batch after send
+    //             batch = batch.createFromThis();
+    //             batch.setEnableCompression(connectorConfig.enableCompression);
+    //         }
+    //     }
+
+    //     // Last batch
+    //     if (!batch.isEmpty()) {
+    //         send(batch);
+    //     }
+    // }
 
     private void send(final EventBatch batch) {
         batch.resetSendTimestamp();
@@ -412,54 +441,46 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
             }
             return event;
         }
-        if (!connectorConfig.metric) {
-            JsonEvent event;
-            ObjectMapper objectMapper = new ObjectMapper();
 
-            if(connectorConfig.hecEventFormatted) {
-                try {
-                    event = objectMapper.readValue(record.value().toString(), JsonEvent.class);
-                    event.setTied(record);
-                    event.addFields(connectorConfig.enrichments);
-                } catch(Exception e) {
-                    log.error("event does not follow correct HEC pre-formatted format: {}", record.value().toString());
-                    event = createHECEventNonFormatted(record);
-                }
-            } else {
-                event = createHECEventNonFormatted(record);
-            }
-
-            if(connectorConfig.headerSupport) {
-                addHeaders(event, record);
-            }
-
-            if (connectorConfig.trackData) {
-                Map<String, String> trackMetas = new HashMap<>();
-                trackMetas.put("kafka_offset", String.valueOf(record.kafkaOffset()));
-                trackMetas.put("kafka_timestamp", String.valueOf(record.timestamp()));
-                trackMetas.put("kafka_topic", record.topic());
-                trackMetas.put("kafka_partition", String.valueOf(record.kafkaPartition()));
-                trackMetas.put("kafka_record_key", String.valueOf(record.key()));
-                if (HOSTNAME != null)
-                    trackMetas.put("kafka_connect_host", HOSTNAME);
-                event.addFields(trackMetas);
-            }
-            event.validate();
-
+        if (connectorConfig.metric) {
+            MetricEvent event = createHECMetric(record);
             return event;
         }
-        
-        MetricEvent event;
+
+        JsonEvent event;
         ObjectMapper objectMapper = new ObjectMapper();
-        if (connectorConfig.hecEventFormatted) {
+
+        if(connectorConfig.hecEventFormatted) {
             try {
-                event = objectMapper.readValue(record.value().toString(), MetricEven.class);
-            } catch (Exception e) {
+                event = objectMapper.readValue(record.value().toString(), JsonEvent.class);
+                event.setTied(record);
+                event.addFields(connectorConfig.enrichments);
+            } catch(Exception e) {
                 log.error("event does not follow correct HEC pre-formatted format: {}", record.value().toString());
+                event = createHECEventNonFormatted(record);
             }
         } else {
-            event = createHECEventMetric(record);
+            event = createHECEventNonFormatted(record);
         }
+
+        if(connectorConfig.headerSupport) {
+            addHeaders(event, record);
+        }
+
+        if (connectorConfig.trackData) {
+            Map<String, String> trackMetas = new HashMap<>();
+            trackMetas.put("kafka_offset", String.valueOf(record.kafkaOffset()));
+            trackMetas.put("kafka_timestamp", String.valueOf(record.timestamp()));
+            trackMetas.put("kafka_topic", record.topic());
+            trackMetas.put("kafka_partition", String.valueOf(record.kafkaPartition()));
+            trackMetas.put("kafka_record_key", String.valueOf(record.key()));
+            if (HOSTNAME != null)
+                trackMetas.put("kafka_connect_host", HOSTNAME);
+            event.addFields(trackMetas);
+        }
+        event.validate();
+
+        return event;
     }
 
     private Event addHeaders(Event event, SinkRecord record) {
@@ -526,17 +547,22 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
         return event;
     }
 
-    private MetricEvent createHECEventMetric(final SinkRecord record) {
+    private MetricEvent createHECMetric(final SinkRecord record) {
         MetricEvent event = new MetricEvent(record.value(), record);
+        log.info("Event immediately after initialization: " + event.toString());
         if (connectorConfig.useRecordTimestamp && record.timestamp() != null) {
             event.setTime(record.timestamp() / 1000.0);
         }
+
+        if(connectorConfig.enableTimestampExtraction) {
+            event.extractTimestamp();
+         }
+
         Map<String, String> metas = connectorConfig.topicMetas.get(record.topic());
         if (metas != null) {
             event.setIndex(metas.get(SplunkSinkConnectorConfig.INDEX));
             event.setSourcetype(metas.get(SplunkSinkConnectorConfig.SOURCETYPE));
             event.setSource(metas.get(SplunkSinkConnectorConfig.SOURCE));
-            event.addFields(connectorConfig.enrichments);
         }
         return event;
     }

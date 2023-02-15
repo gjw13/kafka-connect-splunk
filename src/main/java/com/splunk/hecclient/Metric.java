@@ -17,29 +17,36 @@ package com.splunk.hecclient;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import org.slf4j.*;
 
-import java.io.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.text.SimpleDateFormat;
-import java.util.Map;
 import java.util.TimeZone;
 
+import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * Event is an abstract class that represents a bare bones implementation of a Splunk Event. Every event that arrives
- * in Splunk must have a time, host, index, source and sourcetype. Event is extended by the JsonEvent, RawEvent, and MetricEvent
- * classes which are used depending on which Splunk HEC endpoint will be used when sending events to Splunk.
+ *  MetricEvent is used as the Object to represented Splunk events when the /services/collector HEC endpoint is to
+ *  be used for Splunk ingestion.
  * <p>
- * This class contains getter and setter methods with a few convenience functions such as validation and Input and
- * Output stream creation.
- *
- * @version     1.0.0
- * @since       1.0.0
+ * TODO: rewrite
+ * This class contains overridden methods from Event which will allow adding extra fields to events,
+ * retrieving extra fields, converting the MetricEvent object to a String and converting the MetricEvent object into a byte
+ * representation.
+ * @see         Event
+ * @version     1.0
+ * @since       1.0
  */
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
-public abstract class Event {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public final class Metric {
+    // private Map<String, String> fields;
     static final String TIME = "time";
     static final String HOST = "host";
     static final String INDEX = "index";
@@ -55,54 +62,47 @@ public abstract class Event {
         jsonMapper.setDateFormat(df);
     }
 
-    protected static final Logger log = LoggerFactory.getLogger(Event.class);
-
-    @JsonSerialize(using = DoubleSerializer.class)
-    protected Double time = null; // epoch seconds.milliseconds
+    protected static final Logger log = LoggerFactory.getLogger(Metric.class);
 
     protected String source;
     protected String sourcetype;
     protected String host;
     protected String index;
-    protected Object event;
+    protected String event = "metric";
+
+    @JsonSerialize(using = DoubleSerializer.class)
+    protected Double time = null; // epoch seconds.milliseconds
+
+    private Object fields;
+    @JsonIgnore
+    private Object tied;
 
     @JsonIgnore
     protected String lineBreaker = "\n";
 
     @JsonIgnore
-    protected byte[] bytes; // populated once, use forever until invalidate
-
-    @JsonIgnore
-    private Object tied; // attached object
+    protected byte[] bytes;
 
     /**
-     * Creates a new event.
+     * Creates a new metric event.
      *
-     * @param eventData  Object representation of the event itself without all the extras. Event Data Only
-     * @param tiedObj    Object representation of the entire Record being constructed into an Event.
+     * @param data    Object representation of the event itself without all the extras. Event Data Only
+     * @param tied    Object representation of the entire Record being constructed into an Event.
      *
-     *
-     * @since           1.0.0
-     * @see JsonEvent
-     * @see RawEvent
-     * @see MetricEvent
+     * @since         1.0
+     * @see           Event
      */
-    public Event(Object eventData, Object tiedObj) {
-        checkEventData(eventData);
-
-        event = eventData;
-        tied = tiedObj;
+    public Metric(Object fields, Object tied) {
+        this.fields = fields;
+        this.tied = tied;
     }
 
     /**
-     * Creates a new event with default values. Implemented for JSON deserialization.
+     * Creates a new json event with default values.
      *
-     * @since   1.0.0
-     * @see     JsonEvent
-     * @see     RawEvent
-     * @see     MetricEvent
+     * @since           1.0
      */
-    Event() {
+    Metric() {
     }
 
     /**
@@ -114,24 +114,10 @@ public abstract class Event {
      * @see          Event
      * @since        1.0.0
      */
-
-    public final Event setEvent(final Object data) {
-        checkEventData(data);
-        event = data;
-        invalidate();
-        return this;
-    }
-
-    /**
-     * Tied is the full Record Object with associated meta-data.
-     *
-     * @param tied   Object representation of the event with associated meta-data.
-     * @return       Current representation of Event.
-     * @see          Event
-     * @since        1.0.0
-     */
-    public final Event setTied(final Object tied) {
-        this.tied = tied;
+    public final Metric setFields(final Object data) {
+        // checkEventData(data);
+        fields = data;
+        // invalidate();
         return this;
     }
 
@@ -144,9 +130,22 @@ public abstract class Event {
      * @see         Event
      * @since       1.0.0
      */
-    public final Event setTime(final double etime /* seconds.milliseconds */) {
+    public final Metric setTime(final double etime /* seconds.milliseconds */) {
         this.time = etime;
-        invalidate();
+        // invalidate();
+        return this;
+    }
+
+    /**
+     * Tied is the full Record Object with associated meta-data.
+     *
+     * @param tied   Object representation of the event with associated meta-data.
+     * @return       Current representation of Event.
+     * @see          Event
+     * @since        1.0.0
+     */
+    public final Metric setTied(final Object tied) {
+        this.tied = tied;
         return this;
     }
 
@@ -159,9 +158,9 @@ public abstract class Event {
      * @see          Event
      * @since        1.0.0
      */
-    public final Event setSource(final String source) {
+    public final Metric setSource(final String source) {
         this.source = source;
-        invalidate();
+        // invalidate();
         return this;
     }
 
@@ -174,9 +173,9 @@ public abstract class Event {
      * @see              Event
      * @since            1.0.0
      */
-    public final Event setSourcetype(final String sourcetype) {
+    public final Metric setSourcetype(final String sourcetype) {
         this.sourcetype = sourcetype;
-        invalidate();
+        // invalidate();
         return this;
     }
 
@@ -190,9 +189,9 @@ public abstract class Event {
      * @see        Event
      * @since      1.0.0
      */
-    public final Event setHost(final String host) {
+    public final Metric setHost(final String host) {
         this.host = host;
-        invalidate();
+        // invalidate();
         return this;
     }
 
@@ -204,9 +203,23 @@ public abstract class Event {
      * @see         Event
      * @since       1.0.0
      */
-    public final Event setIndex(final String index) {
+    public final Metric setIndex(final String index) {
         this.index = index;
-        invalidate();
+        // invalidate();
+        return this;
+    }
+
+    /**
+     * Index is a required field used to send an event to particular <a href=http://docs.splunk.com/Documentation/Splunk/7.0.0/Indexer/Aboutindexesandindexers>Splunk Index</>.
+     *
+     * @param index String representation of the Splunk index
+     * @return      Current representation of Event.
+     * @see         Event
+     * @since       1.0.0
+     */
+    public final Metric setEvent(final String event) {
+        this.event = event;
+        // invalidate();
         return this;
     }
 
@@ -230,32 +243,25 @@ public abstract class Event {
         return index;
     }
 
-    public Object getEvent() {
+    public final String getEvent() {
         return event;
-    }
-
-    public final String getLineBreaker() {
-        return lineBreaker;
     }
 
     public final Object getTied() {
         return tied;
     }
 
-    public Event addFields(final Map<String, String> fields) {
-        return this;
-    }
-
-    public Event setFields(final Map<String, String> fields) {
-        return this;
-    }
-
-    public Map<String, String> getFields() {
-        return null;
-    }
-
-    public Object getMetricFields() {
-        return null;
+    /**
+     * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
+     * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
+     *
+     * @return             Map representation of fields
+     * @see                Map
+     * @since              1.0
+     */
+    // @Override
+    public Object getFields() {
+        return fields;
     }
 
     /**
@@ -269,6 +275,25 @@ public abstract class Event {
     public final int length() {
         byte[] data = getBytes();
         return data.length + lineBreaker.getBytes().length;
+    }
+
+    /**
+     * Using ObjectMapper the MetricEvent is serialized to a String and returned.
+     *
+     * @return  Serialized String representation of MetricEvent including all variables in superclass Event.
+     *
+     * @throws  HecException
+     * @see     com.fasterxml.jackson.databind.ObjectMapper
+     * @since   1.0
+     */
+    @Override
+    public String toString() {
+        try {
+            return jsonMapper.writeValueAsString(this);
+        } catch (Exception ex) {
+            System.out.println("failed to json serlized MetricEvent: " + ex.toString());
+            throw new HecException("failed to json serialized JsonEvent", ex);
+        }
     }
 
     /**
@@ -311,57 +336,60 @@ public abstract class Event {
     }
 
     /**
-     * Will attempt to convert current Event into bytes and raise an HECException on issue. This will most likely occur
-     * if JSON Marshalling fails on an invalid JSON representation of an event. getBytes() is implemented within the
-     * extended Event classes JSONEvent, RawEvent, and MetricEvent. Nothing will happen on a successful validation.
+     * Checks to ensure the byte representation of the Event has not already been calculated. If so, it will return
+     * what is already in variable bytes. Otherwise the ObjectMapper through annotations will serialize the
+     * MetricEvent object.
+     *
+     * @return  Serialized byte array representation of MetricEvent including all variables in superclass Event. Will return the
+     * value already contained in bytes if it is not null for the Event.
      *
      * @throws  HecException
-     * @see     JsonEvent
-     * @see     RawEvent
-     * @see     MetricEvent
-     * @since   1.0.0
+     * @see     com.fasterxml.jackson.databind.ObjectMapper
+     * @since   1.0
      */
-    public void validate() throws HecException {
-        getBytes();
-    }
-
-    /**
-     * On changes to an Events host, index, source, sourcetype and time the event is invalidated by setting bytes
-     * to null.
-     *
-     * @since   1.0.0
-     */
-    public void invalidate() {
-        bytes = null;
-    }
-
-    /**
-     * Will return a byteArray representing of the JsonEvent, RawEvent, or MetricEvent classes. These classes use Jackson Annotations
-     * and the Jackson ObjectMapper to achieve this.
-     *
-     * @see     HecException
-     * @see     JsonEvent
-     * @see     RawEvent
-     * @see     MetricEvent
-     * @since   1.0.0
-     */
-    public abstract byte[] getBytes() throws HecException;
-
-    /**
-     * Static helper function looking for null or empty events. On finding one of these failure conditions a
-     * HECException is thrown.
-     *
-     * @throws  HecException
-     * @since   1.0.0
-     */
-    private static void checkEventData(Object eventData) {
-        if (eventData == null) {
-            throw new HecNullEventException("Null data for event");
+    // @Override
+    @JsonIgnore
+    public byte[] getBytes() {
+        if (bytes != null) {
+            return bytes;
         }
-        if (eventData instanceof String) {
-            if (((String) eventData).isEmpty()) {
-                throw new HecEmptyEventException("Empty event");
+        try {
+            bytes = jsonMapper.writeValueAsBytes(this);
+        } catch (Exception ex) {
+            log.error("Invalid json event", ex);
+            throw new HecException("Failed to json marshal the event", ex);
+        }
+        return bytes;
+    }
+
+    /**
+     * Extracts timestamp from metric fields. Assumes time key is `time`.
+     */
+    @JsonIgnore
+    public void extractTimestamp() {
+        String jsonStr = this.getFields().toString();
+        String string = jsonStr.replaceAll("\\\"", "\"");
+        String timestamp = "";
+
+        String re = "\\\"time\\\":\\s*\\\"(?<time>.*?)\"";
+        final Pattern pattern = Pattern.compile(re);
+        final Matcher matcher = pattern.matcher(string);
+        try {
+            if (matcher.find()) {
+                timestamp = (matcher.group("time"));
             }
+        } catch (Exception e) {
+            log.warn("Couldn't extract metric timestamp", e);
+        }
+        try {
+            double epoch;
+            epoch = ((Double.parseDouble(timestamp)));
+            long long_epoch = (new Double(epoch)).longValue();
+            System.out.println(long_epoch);
+            this.setTime(epoch / (Math.pow(10, Long.toString(long_epoch).length()-10)));
+        } catch (Exception e) {
+            log.warn("Could not set the time", e);
         }
     }
 }
+

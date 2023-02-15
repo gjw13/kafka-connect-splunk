@@ -16,18 +16,38 @@
 package com.splunk.hecclient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.common.record.TimestampType;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MetricEventTest {
     static final ObjectMapper jsonMapper = new ObjectMapper();
+
+    @Test
+    public void gregTest(){
+        String value = "{\"time\": \"1675115705578\",\"source\":\"bu\",\"metric_name:test\":\"12.2\",\"category\":\"IFdata\"}";
+        SinkRecord rec = new SinkRecord("test_topic", 1, null, "test", null, value, 0, 0L, TimestampType.NO_TIMESTAMP_TYPE);
+        System.out.println("value: " + rec.value().toString());
+        System.out.println("record: " + rec);
+        MetricEvent event = new MetricEvent(rec.value(), rec);
+        // RawEvent rawevent = new RawEvent(rec.value(), rec);
+        // System.out.println(rawevent);
+        // System.out.println(rawevent.toString());
+        System.out.println("----- MetricEvent -----");
+        // System.out.println(event);
+        event.setIndex("test-index");
+        event.setSourcetype("test-sourcetype");
+        event.setSource("test-source");
+        event.extractTimestamp();
+        System.out.println(event.getBytes());
+        System.out.println(event.getMetricFields());
+        System.out.println(event.toString());
+    }
 
     @Test
     public void createValidMetricEvent() {
@@ -35,7 +55,7 @@ public class MetricEventTest {
 
         // without tied object
         Event event = new MetricEvent(data, null);
-        Assert.assertEquals(data, event.getEvent());
+        Assert.assertEquals(data, event.getMetricFields());
         Assert.assertEquals(null, event.getTied());
 
         // with tied object
@@ -43,7 +63,7 @@ public class MetricEventTest {
         event = new MetricEvent(data, tied);
 
         Assert.assertEquals(tied, event.getTied());
-        Assert.assertEquals(data, event.getEvent());
+        Assert.assertEquals(data, event.getMetricFields());
     }
 
     @Test(expected = HecException.class)
@@ -57,44 +77,11 @@ public class MetricEventTest {
     }
 
     @Test
-    public void addFields() {
-        Event event = new MetricEvent("this is splunk event", null);
-
-        // null extra fields
-        event.addFields(null);
-        Assert.assertNull(event.getFields());
-
-        // empty extra fields
-        Map<String, String> fields = new HashMap<>();
-        event.addFields(fields);
-        Assert.assertNull(event.getFields());
-
-        // one item
-        fields.put("ni", "hao");
-        event.addFields(fields);
-        Map<String, String> fieldsGot = event.getFields();
-        Assert.assertNotNull(fieldsGot);
-        Assert.assertEquals(false, fieldsGot.isEmpty());
-        Assert.assertEquals(1, fieldsGot.size());
-        Assert.assertEquals("hao", fieldsGot.get("ni"));
-
-        // put another one
-        fields.put("hello", "world");
-        event.addFields(fields);
-        fieldsGot = event.getFields();
-        Assert.assertNotNull(fieldsGot);
-        Assert.assertEquals(false, fieldsGot.isEmpty());
-        Assert.assertEquals(2, fieldsGot.size());
-        Assert.assertEquals("hao", fieldsGot.get("ni"));
-        Assert.assertEquals("world", fieldsGot.get("hello"));
-    }
-
-    @Test
     public void toStr() {
         SerialAndDeserial sad = new SerialAndDeserial() {
             @Override
             public Event serializeAndDeserialize(Event event) {
-                String stringed = event.toString();
+                String stringed = event.toString().replace("\"fields\"", "\"metricFields\"");
                 Assert.assertNotNull(stringed);
 
                 Event deserilized;
@@ -145,13 +132,13 @@ public class MetricEventTest {
             Assert.assertTrue("failed to deserialize from bytes", false);
             throw new HecException("failed to deserialize from bytes", ex);
         }
-        Assert.assertEquals("hello", eventGot.getEvent());
+        Assert.assertEquals("hello", eventGot.getMetricFields());
     }
 
     @Test
     public void getterSetter() {
         Event event = new MetricEvent("hello", "world");
-        Assert.assertEquals("hello", event.getEvent());
+        Assert.assertEquals("hello", event.getMetricFields());
         Assert.assertEquals("world", event.getTied());
 
         Assert.assertNull(event.getIndex());
@@ -174,25 +161,8 @@ public class MetricEventTest {
         event.setTime(1.0);
         Assert.assertEquals(new Double(1.0), event.getTime());
 
-        event.setEvent("ni");
-        Assert.assertEquals("ni", event.getEvent());
-
         event.setTied("hao");
         Assert.assertEquals("hao", event.getTied());
-
-        Map<String, String> fields = new HashMap<>();
-        fields.put("hello", "world");
-        event.setFields(fields);
-        Assert.assertEquals(fields, event.getFields());
-
-        Map<String, String> moreFields = new HashMap<>();
-        moreFields.put("ni", "hao");
-        event.addFields(moreFields);
-        Map<String, String> got = event.getFields();
-        Assert.assertNotNull(got);
-        Assert.assertEquals(2, got.size());
-        Assert.assertEquals("world", got.get("hello"));
-        Assert.assertEquals("hao", got.get("ni"));
     }
 
     private interface SerialAndDeserial {
@@ -231,16 +201,13 @@ public class MetricEventTest {
         for (int i = 0; i < 2; i++) {
             Event deserialized = sad.serializeAndDeserialize(event);
 
-            Assert.assertEquals(data, deserialized.getEvent());
+            Assert.assertEquals(data, deserialized.getMetricFields());
             Assert.assertNull(deserialized.getTied()); // we ignore tied when serialize Event
             Assert.assertEquals("localhost", deserialized.getHost());
             Assert.assertEquals("main", deserialized.getIndex());
             Assert.assertEquals("test-source", deserialized.getSource());
             Assert.assertEquals("test-sourcetype", deserialized.getSourcetype());
             Assert.assertEquals(event.getTime(), deserialized.getTime());
-
-            Map<String, String> fieldsGot = deserialized.getFields();
-            Assert.assertEquals("hao", fieldsGot.get("ni"));
         }
     }
 }

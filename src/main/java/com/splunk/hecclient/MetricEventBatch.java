@@ -57,7 +57,7 @@ public final class MetricEventBatch extends EventBatch {
     public boolean equals(Object obj) {
         if (obj instanceof MetricEventBatch) {
             final MetricEventBatch other = (MetricEventBatch) obj;
-            return endpoint.equals(endpoint);
+            return endpoint.equals(other.getRestEndpoint());
         }
         return false;
     }

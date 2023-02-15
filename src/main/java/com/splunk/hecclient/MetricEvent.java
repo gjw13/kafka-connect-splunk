@@ -15,10 +15,11 @@
  */
 package com.splunk.hecclient;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *  MetricEvent is used as the Object to represented Splunk events when the /services/collector HEC endpoint is to
@@ -33,7 +34,10 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class MetricEvent extends Event {
-    private Map<String, String> fields;
+    protected Object metricFields;
+
+    @JsonInclude
+    protected String event = "metric";
 
     /**
      * Creates a new metric event.
@@ -45,7 +49,9 @@ public final class MetricEvent extends Event {
      * @see           Event
      */
     public MetricEvent(Object data, Object tied) {
-        super(data, tied);
+        checkMetricData(data);
+        this.setTied(tied);
+        this.metricFields = data;
     }
 
     /**
@@ -57,44 +63,17 @@ public final class MetricEvent extends Event {
     }
 
     /**
-     * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
-     * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
-     * This differs from the setFields method as it will append any extra fields to the the
+     * Event is the data portion of the Event Record. Data passed in is validated to be an acceptable String and the byte[]
+     * representation of the Event is cleared as the Event representation has changed.
      *
-     * @param extraFields  Object representation of the event with associated meta-data.
-     * @return             Current representation of MetricEvent.
-     * @see                MetricEvent
-     * @since              1.0
+     * @param  data  Object representation of the event itself without all the extras. Event Data Only
+     * @return       Current representation of Event.
+     * @see          Event
+     * @since        1.0.0
      */
-    @Override
-    public MetricEvent addFields(final Map<String, String> extraFields) {
-        if (extraFields == null || extraFields.isEmpty()) {
-            return this;
-        }
-
-        if (fields == null) {
-            fields = new HashMap<>();
-        }
-
-        fields.putAll(extraFields);
-        invalidate();
-
-        return this;
-    }
-
-    /**
-     * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
-     * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
-     * This differs from the addFields method as it will replace any fields that are currently associated to this object.
-     *
-     * @param extraFields  Object representation of the event with associated meta-data.
-     * @return             Current representation of MetricEvent.
-     * @see                MetricEvent
-     * @since              1.0
-     */
-    @Override
-    public MetricEvent setFields(final Map<String, String> extraFields) {
-        fields = extraFields;
+    public final MetricEvent setMetricFields(final Object data) {
+        checkMetricData(data);
+        metricFields = data;
         invalidate();
         return this;
     }
@@ -104,13 +83,66 @@ public final class MetricEvent extends Event {
      * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
      *
      * @return             Map representation of fields
-     * @see                Map
+     * @see                Object
      * @since              1.0
      */
-    @Override
-    public Map<String, String> getFields() {
-        return fields;
+    public Object getMetricFields() {
+        // Map<String, String> mapping = null;
+        // try {
+        //     mapping = new ObjectMapper().readValue(fields.toString(), Map.class);
+        // } catch (Exception ex) {
+        //     throw new HecException("failed to json serialized JsonEvent", ex);
+        // }
+        // return mapping;
+        return metricFields;
     }
+
+    public final String getEvent() {
+        return event;
+    }
+
+    // /**
+    //  * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
+    //  * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
+    //  * This differs from the setFields method as it will append any extra fields to the the
+    //  *
+    //  * @param extraFields  Object representation of the event with associated meta-data.
+    //  * @return             Current representation of MetricEvent.
+    //  * @see                MetricEvent
+    //  * @since              1.0
+    //  */
+    // @Override
+    // public MetricEvent addFields(final Map<String, String> extraFields) {
+    //     if (extraFields == null || extraFields.isEmpty()) {
+    //         return this;
+    //     }
+
+    //     if (fields == null) {
+    //         fields = new HashMap<>();
+    //     }
+
+    //     fields.putAll(extraFields);
+    //     invalidate();
+
+    //     return this;
+    // }
+
+    // /**
+    //  * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
+    //  * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
+    //  * This differs from the addFields method as it will replace any fields that are currently associated to this object.
+    //  *
+    //  * @param extraFields  Object representation of the event with associated meta-data.
+    //  * @return             Current representation of MetricEvent.
+    //  * @see                MetricEvent
+    //  * @since              1.0
+    //  */
+    // @Override
+    // public MetricEvent setFields(final Map<String, String> extraFields) {
+    //     fields = extraFields;
+    //     invalidate();
+    //     return this;
+    // }
 
     /**
      * Using ObjectMapper the MetricEvent is serialized to a String and returned.
@@ -124,10 +156,10 @@ public final class MetricEvent extends Event {
     @Override
     public String toString() {
         try {
-            return jsonMapper.writeValueAsString(this);
+            return jsonMapper.writeValueAsString(this).replace("metricFields", "fields");
         } catch (Exception ex) {
-            log.error("failed to json serlized MetricEvent", ex);
-            throw new HecException("failed to json serialized MetricEvent", ex);
+            System.out.println("failed to json serlized MetricEvent: " + ex.toString());
+            throw new HecException("failed to json serialized JsonEvent", ex);
         }
     }
 
@@ -148,13 +180,56 @@ public final class MetricEvent extends Event {
         if (bytes != null) {
             return bytes;
         }
+        // byte[] data = new byte[1024];
 
         try {
             bytes = jsonMapper.writeValueAsBytes(this);
+            // String s = new String(data).replace("metricFields", "fields");
+            // bytes = jsonMapper.writeValueAsBytes(s);
         } catch (Exception ex) {
             log.error("Invalid json event", ex);
             throw new HecException("Failed to json marshal the event", ex);
         }
         return bytes;
+    }
+
+    private static void checkMetricData(Object eventData) {
+        if (eventData == null) {
+            throw new HecNullEventException("Null data for event");
+        }
+        if (eventData instanceof String) {
+            if (((String) eventData).isEmpty()) {
+                throw new HecEmptyEventException("Empty event");
+            }
+        }
+    }
+
+    /**
+     * Extracts timestamp from metric fields. Assumes time key is `time`.
+     */
+    @JsonIgnore
+    public void extractTimestamp() {
+        String jsonStr = this.metricFields.toString();
+        String string = jsonStr.replaceAll("\\\"", "\"");
+        String timestamp = "";
+
+        String re = "\\\"time\":\\s*\\\"(?<time>.*?)\"";
+        final Pattern pattern = Pattern.compile(re);
+        final Matcher matcher = pattern.matcher(string);
+        try {
+            if (matcher.find()) {
+                timestamp = (matcher.group("time"));
+            }
+        } catch (Exception e) {
+            log.warn("Couldn't extract metric timestamp", e);
+        }
+        try {
+            double epoch;
+            epoch = ((Double.parseDouble(timestamp)));
+            long long_epoch = (new Double(epoch)).longValue();
+            this.setTime(epoch / (Math.pow(10, Long.toString(long_epoch).length()-10)));
+        } catch (Exception e) {
+            log.warn("Could not set the time", e);
+        }
     }
 }
