@@ -411,11 +411,11 @@ public class SplunkSinkTaskTest {
                 int j = 0;
                 for (Event event: batch.getEvents()) {
                     int n = i * 100 + j;
-                    Assert.assertEquals(String.valueOf(n), event.getFields().get("kafka_offset"));
-                    Assert.assertEquals(String.valueOf(1), event.getFields().get("kafka_partition"));
-                    Assert.assertEquals(new UnitUtil(0).configProfile.getTopics(), event.getFields().get("kafka_topic"));
-                    Assert.assertEquals(String.valueOf(0), event.getFields().get("kafka_timestamp"));
-                    Assert.assertEquals("test", event.getFields().get("kafka_record_key"));
+                    Assert.assertEquals(String.valueOf(n), event.getMetadata().get("kafka_offset"));
+                    Assert.assertEquals(String.valueOf(1), event.getMetadata().get("kafka_partition"));
+                    Assert.assertEquals(new UnitUtil(0).configProfile.getTopics(), event.getMetadata().get("kafka_topic"));
+                    Assert.assertEquals(String.valueOf(0), event.getMetadata().get("kafka_timestamp"));
+                    Assert.assertEquals("test", event.getMetadata().get("kafka_record_key"));
                     j++;
                 }
 

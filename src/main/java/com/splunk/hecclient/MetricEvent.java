@@ -34,10 +34,10 @@ import java.util.regex.Pattern;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class MetricEvent extends Event {
-    protected Object metricFields;
+    protected Object fields;
 
     @JsonInclude
-    protected String event = "metric";
+    protected String event = "metric"; // https://docs.splunk.com/Documentation/Splunk/9.0.2/Metrics/GetMetricsInOther#Send_data_to_a_metrics_index_over_HTTP
 
     /**
      * Creates a new metric event.
@@ -51,7 +51,7 @@ public final class MetricEvent extends Event {
     public MetricEvent(Object data, Object tied) {
         checkMetricData(data);
         this.setTied(tied);
-        this.metricFields = data;
+        this.fields = data;
     }
 
     /**
@@ -71,9 +71,9 @@ public final class MetricEvent extends Event {
      * @see          Event
      * @since        1.0.0
      */
-    public final MetricEvent setMetricFields(final Object data) {
+    public final MetricEvent setFields(final Object data) {
         checkMetricData(data);
-        metricFields = data;
+        fields = data;
         invalidate();
         return this;
     }
@@ -86,7 +86,7 @@ public final class MetricEvent extends Event {
      * @see                Object
      * @since              1.0
      */
-    public Object getMetricFields() {
+    public Object getFields() {
         // Map<String, String> mapping = null;
         // try {
         //     mapping = new ObjectMapper().readValue(fields.toString(), Map.class);
@@ -94,7 +94,7 @@ public final class MetricEvent extends Event {
         //     throw new HecException("failed to json serialized JsonEvent", ex);
         // }
         // return mapping;
-        return metricFields;
+        return fields;
     }
 
     public final String getEvent() {
@@ -156,7 +156,11 @@ public final class MetricEvent extends Event {
     @Override
     public String toString() {
         try {
-            return jsonMapper.writeValueAsString(this).replace("metricFields", "fields");
+            //backtrace here
+            log.warn("calling toString for MetricEvent");
+            // Thread.currentThread().dumpStack();
+            // return jsonMapper.writeValueAsString(this).replace("metricFields", "fields");
+            return jsonMapper.writeValueAsString(this);
         } catch (Exception ex) {
             System.out.println("failed to json serlized MetricEvent: " + ex.toString());
             throw new HecException("failed to json serialized JsonEvent", ex);
@@ -177,29 +181,27 @@ public final class MetricEvent extends Event {
      */
     @Override
     public byte[] getBytes() {
+        log.info("Calling getBytes for MetricEvent");
         if (bytes != null) {
             return bytes;
         }
-        // byte[] data = new byte[1024];
 
         try {
             bytes = jsonMapper.writeValueAsBytes(this);
-            // String s = new String(data).replace("metricFields", "fields");
-            // bytes = jsonMapper.writeValueAsBytes(s);
         } catch (Exception ex) {
-            log.error("Invalid json event", ex);
-            throw new HecException("Failed to json marshal the event", ex);
+            log.error("Invalid metric event", ex);
+            throw new HecException("Failed to json marshal the metric event", ex);
         }
         return bytes;
     }
 
     private static void checkMetricData(Object eventData) {
         if (eventData == null) {
-            throw new HecNullEventException("Null data for event");
+            throw new HecNullEventException("Null data for metric event");
         }
         if (eventData instanceof String) {
             if (((String) eventData).isEmpty()) {
-                throw new HecEmptyEventException("Empty event");
+                throw new HecEmptyEventException("Empty metric event");
             }
         }
     }
@@ -209,16 +211,20 @@ public final class MetricEvent extends Event {
      */
     @JsonIgnore
     public void extractTimestamp() {
-        String jsonStr = this.metricFields.toString();
+        String jsonStr = this.getFields().toString();
+        log.info("Fields: " + jsonStr);
         String string = jsonStr.replaceAll("\\\"", "\"");
         String timestamp = "";
 
-        String re = "\\\"time\":\\s*\\\"(?<time>.*?)\"";
+        // Because records from Kafka Connect come in as a Struct, regex is set using = operator
+        String re = "time=(?<time>.*?),";
         final Pattern pattern = Pattern.compile(re);
         final Matcher matcher = pattern.matcher(string);
+        log.info("timestamp matcher: " + matcher.toString());
         try {
             if (matcher.find()) {
                 timestamp = (matcher.group("time"));
+                log.info("Timestamp: " + timestamp);
             }
         } catch (Exception e) {
             log.warn("Couldn't extract metric timestamp", e);
@@ -226,7 +232,9 @@ public final class MetricEvent extends Event {
         try {
             double epoch;
             epoch = ((Double.parseDouble(timestamp)));
+            log.info("Epoch: " + epoch);
             long long_epoch = (new Double(epoch)).longValue();
+            log.info("Long epoch: " + long_epoch);
             this.setTime(epoch / (Math.pow(10, Long.toString(long_epoch).length()-10)));
         } catch (Exception e) {
             log.warn("Could not set the time", e);

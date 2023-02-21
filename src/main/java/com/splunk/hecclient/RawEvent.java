@@ -15,6 +15,8 @@
  */
 package com.splunk.hecclient;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
@@ -87,6 +89,12 @@ public final class RawEvent extends Event {
             this.lineBreaker = breaker;
         }
         return this;
+    }
+
+    @Override
+    @JsonIgnore
+    public Object getFields() {
+        return null;
     }
 
     /**

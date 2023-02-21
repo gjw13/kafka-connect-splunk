@@ -16,15 +16,25 @@
 package com.splunk.hecclient;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.AbstractHttpEntity;
+import org.apache.http.entity.ContentProducer;
+import org.apache.http.entity.EntityTemplate;
+
+import java.io.*;
+import java.util.*;
 
 public final class MetricEventBatch extends EventBatch {
     public static final String endpoint = "/services/collector";
-    public static final String contentType = "application/json; profile=urn:splunk:metric:1.0; charset=utf-8"; // TODO: confirm profile
+    // public static final String contentType = "application/json; profile=urn:splunk:event:1.0; charset=utf-8"; // TODO: confirm profile
+    public static final String contentType = "application/json; charset=utf-8";
 
     @Override
     public void add(Event event) {
         if (event instanceof MetricEvent) {
+            // log.info("Event in batch.add(event): " + event.toString());
             events.add(event);
+            // log.info("Events list after events.add(event) in batch.add(event): " + event.toString());
             len += event.length();
         } else {
             throw new HecException("only MetricEvent can be add to MetricEventBatch");
@@ -61,4 +71,45 @@ public final class MetricEventBatch extends EventBatch {
         }
         return false;
     }
+
+    // private class HttpEventBatchEntity extends AbstractHttpEntity {
+    //     @Override
+    //     public boolean isRepeatable() {
+    //         return true;
+    //     }
+
+    //     @Override
+    //     public long getContentLength() {
+    //         return length();
+    //     }
+
+    //     @Override
+    //     public boolean isStreaming() {
+    //         return false;
+    //     }
+
+    //     @Override
+    //     public InputStream getContent() throws IOException, UnsupportedOperationException {
+    //         return new SequenceInputStream(new Enumeration<InputStream>() {
+    //             int idx = -1;
+
+    //             @Override
+    //             public boolean hasMoreElements() {
+    //                 return !events.isEmpty() && (idx + 1) < events.size();
+    //             }
+
+    //             @Override
+    //             public InputStream nextElement() {
+    //                 return events.get(++idx).getInputStream();
+    //             }
+    //         });
+    //     }
+
+    //     @Override
+    //     public void writeTo(OutputStream outstream) throws IOException {
+    //         for (final Event e : events) {
+    //             e.writeTo(outstream);
+    //         }
+    //     }
+    // }
 }

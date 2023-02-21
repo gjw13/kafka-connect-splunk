@@ -47,11 +47,11 @@ public abstract class EventBatch {
     public abstract void add(Event event);
     public abstract EventBatch createFromThis();
 
-    public final void addExtraFields(final Map<String, String> fields) {
+    public final void addExtraMetadata(final Map<String, String> metadata) {
         // recalculate the batch length since we inject more meta data to each event
         int newLength = 0;
         for (final Event event: events) {
-            event.addFields(fields);
+            event.addMetadata(metadata);
             newLength += event.length();
         }
         len = newLength;
@@ -181,6 +181,7 @@ public abstract class EventBatch {
 
         @Override
         public long getContentLength() {
+            log.info("Getting content length: " + length());
             return length();
         }
 
@@ -209,6 +210,7 @@ public abstract class EventBatch {
         @Override
         public void writeTo(OutputStream outstream) throws IOException {
             for (final Event e : events) {
+                log.info("writeTo event: " + e.toString());
                 e.writeTo(outstream);
             }
         }

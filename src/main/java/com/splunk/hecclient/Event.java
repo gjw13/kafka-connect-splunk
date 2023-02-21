@@ -242,19 +242,19 @@ public abstract class Event {
         return tied;
     }
 
-    public Event addFields(final Map<String, String> fields) {
+    public Event addMetadata(final Map<String, String> metadata) {
         return this;
     }
 
-    public Event setFields(final Map<String, String> fields) {
+    public Event setMetadata(final Map<String, String> metadata) {
         return this;
     }
 
-    public Map<String, String> getFields() {
+    public Map<String, String> getMetadata() {
         return null;
     }
 
-    public Object getMetricFields() {
+    public Object getFields() {
         return null;
     }
 

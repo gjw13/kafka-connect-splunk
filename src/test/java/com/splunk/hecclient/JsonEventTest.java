@@ -57,22 +57,22 @@ public class JsonEventTest {
     }
 
     @Test
-    public void addFields() {
+    public void addMetadata() {
         Event event = new JsonEvent("this is splunk event", null);
 
         // null extra fields
-        event.addFields(null);
-        Assert.assertNull(event.getFields());
+        event.addMetadata(null);
+        Assert.assertNull(event.getMetadata());
 
         // empty extra fields
         Map<String, String> fields = new HashMap<>();
-        event.addFields(fields);
-        Assert.assertNull(event.getFields());
+        event.addMetadata(fields);
+        Assert.assertNull(event.getMetadata());
 
         // one item
         fields.put("ni", "hao");
-        event.addFields(fields);
-        Map<String, String> fieldsGot = event.getFields();
+        event.addMetadata(fields);
+        Map<String, String> fieldsGot = event.getMetadata();
         Assert.assertNotNull(fieldsGot);
         Assert.assertEquals(false, fieldsGot.isEmpty());
         Assert.assertEquals(1, fieldsGot.size());
@@ -80,8 +80,8 @@ public class JsonEventTest {
 
         // put another one
         fields.put("hello", "world");
-        event.addFields(fields);
-        fieldsGot = event.getFields();
+        event.addMetadata(fields);
+        fieldsGot = event.getMetadata();
         Assert.assertNotNull(fieldsGot);
         Assert.assertEquals(false, fieldsGot.isEmpty());
         Assert.assertEquals(2, fieldsGot.size());
@@ -182,13 +182,13 @@ public class JsonEventTest {
 
         Map<String, String> fields = new HashMap<>();
         fields.put("hello", "world");
-        event.setFields(fields);
-        Assert.assertEquals(fields, event.getFields());
+        event.setMetadata(fields);
+        Assert.assertEquals(fields, event.getMetadata());
 
-        Map<String, String> moreFields = new HashMap<>();
-        moreFields.put("ni", "hao");
-        event.addFields(moreFields);
-        Map<String, String> got = event.getFields();
+        Map<String, String> moreMetadata = new HashMap<>();
+        moreMetadata.put("ni", "hao");
+        event.addMetadata(moreMetadata);
+        Map<String, String> got = event.getMetadata();
         Assert.assertNotNull(got);
         Assert.assertEquals(2, got.size());
         Assert.assertEquals("world", got.get("hello"));
@@ -221,7 +221,7 @@ public class JsonEventTest {
 
         Map<String, String> fields = new HashMap<>();
         fields.put("ni", "hao");
-        event.addFields(fields);
+        event.addMetadata(fields);
         event.setHost("localhost");
         event.setIndex("main");
         event.setSource("test-source");
@@ -239,7 +239,7 @@ public class JsonEventTest {
             Assert.assertEquals("test-sourcetype", deserialized.getSourcetype());
             Assert.assertEquals(event.getTime(), deserialized.getTime());
 
-            Map<String, String> fieldsGot = deserialized.getFields();
+            Map<String, String> fieldsGot = deserialized.getMetadata();
             Assert.assertEquals("hao", fieldsGot.get("ni"));
         }
     }
