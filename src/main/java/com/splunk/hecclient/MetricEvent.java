@@ -164,11 +164,9 @@ public final class MetricEvent extends Event {
         String re = "time=(?<time>.*?),";
         final Pattern pattern = Pattern.compile(re);
         final Matcher matcher = pattern.matcher(string);
-        log.info("timestamp matcher: " + matcher.toString());
         try {
             if (matcher.find()) {
                 timestamp = (matcher.group("time"));
-                log.info("Timestamp: " + timestamp);
             }
         } catch (Exception e) {
             log.warn("Couldn't extract metric timestamp", e);
@@ -176,9 +174,7 @@ public final class MetricEvent extends Event {
         try {
             double epoch;
             epoch = ((Double.parseDouble(timestamp)));
-            log.info("Epoch: " + epoch);
             long long_epoch = (new Double(epoch)).longValue();
-            log.info("Long epoch: " + long_epoch);
             this.setTime(epoch / (Math.pow(10, Long.toString(long_epoch).length()-10)));
         } catch (Exception e) {
             log.warn("Could not set the time", e);

@@ -71,45 +71,4 @@ public final class MetricEventBatch extends EventBatch {
         }
         return false;
     }
-
-    // private class HttpEventBatchEntity extends AbstractHttpEntity {
-    //     @Override
-    //     public boolean isRepeatable() {
-    //         return true;
-    //     }
-
-    //     @Override
-    //     public long getContentLength() {
-    //         return length();
-    //     }
-
-    //     @Override
-    //     public boolean isStreaming() {
-    //         return false;
-    //     }
-
-    //     @Override
-    //     public InputStream getContent() throws IOException, UnsupportedOperationException {
-    //         return new SequenceInputStream(new Enumeration<InputStream>() {
-    //             int idx = -1;
-
-    //             @Override
-    //             public boolean hasMoreElements() {
-    //                 return !events.isEmpty() && (idx + 1) < events.size();
-    //             }
-
-    //             @Override
-    //             public InputStream nextElement() {
-    //                 return events.get(++idx).getInputStream();
-    //             }
-    //         });
-    //     }
-
-    //     @Override
-    //     public void writeTo(OutputStream outstream) throws IOException {
-    //         for (final Event e : events) {
-    //             e.writeTo(outstream);
-    //         }
-    //     }
-    // }
 }

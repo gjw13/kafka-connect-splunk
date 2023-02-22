@@ -45,51 +45,15 @@ public class MetricEventTest {
                 .put("env", "dev");
 
     @Test
-    public void gregTest(){
-        String value = "{\"time\": \"1675115705578\",\"source\":\"bu\",\"metric_name:test\":\"12.2\",\"category\":\"IFdata\"}";
-
-
+    public void createValidMetricEventWithStruct(){
         SinkRecord rec = new SinkRecord("test_topic", 1, null, "test", null, struct, 0, 0L, TimestampType.NO_TIMESTAMP_TYPE);
-        System.out.println("value: " + rec.value().toString());
-        System.out.println("record: " + rec);
         MetricEvent event = new MetricEvent(rec.value(), rec);
-        RawEvent rawEvent = new RawEvent(rec.value(), rec);
-        JsonEvent jsonEvent = new JsonEvent(rec.value(), rec);
-        // RawEvent rawevent = new RawEvent(rec.value(), rec);
-        // System.out.println(rawevent);
-        // System.out.println(rawevent.toString());
-        System.out.println("----- MetricEvent -----");
         // System.out.println(event);
         event.setIndex("test-index");
         event.setSourcetype("test-sourcetype");
         event.setSource("test-source");
         event.extractTimestamp();
-        System.out.println("Bytes: " + event.getBytes());
-        System.out.println(event.getFields());
-        System.out.println(event.toString());
-
-        System.out.println("----- RawEvent -----");
-        // System.out.println(event);
-        rawEvent.setIndex("test-index");
-        rawEvent.setSourcetype("test-sourcetype");
-        rawEvent.setSource("test-source");
-        System.out.println(rawEvent.getBytes());
-        System.out.println(rawEvent.getFields());
-        System.out.println(rawEvent.toString());
-
-        System.out.println("----- JsonEvent -----");
-        // System.out.println(event);
-        jsonEvent.setIndex("test-index");
-        jsonEvent.setSourcetype("test-sourcetype");
-        jsonEvent.setSource("test-source");
-        System.out.println(jsonEvent.getBytes());
-        System.out.println(jsonEvent.getFields());
-        System.out.println(jsonEvent.toString());
-
-        Map<String, String> testFields = new HashMap<>();
-        testFields.put("ni", "hao");
-        jsonEvent.addMetadata(testFields);
-        System.out.println(jsonEvent.toString());
+        Assert.assertEquals(struct, event.getFields());
     }
 
     @Test

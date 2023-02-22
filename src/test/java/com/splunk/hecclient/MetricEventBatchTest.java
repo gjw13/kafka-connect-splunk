@@ -23,9 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 public class MetricEventBatchTest {
@@ -106,7 +104,6 @@ public class MetricEventBatchTest {
         System.out.println(event.toString());
         batch.add(event);
         String data = "{\"event\":\"metric\",\"fields\":\"ni\"}";
-        // String data = "{\"fields\":\"ni\"}";
         Assert.assertEquals(data.length() + 1, batch.length());
         Assert.assertEquals(1, batch.size());
         Assert.assertFalse(batch.isEmpty());
@@ -125,7 +122,6 @@ public class MetricEventBatchTest {
         batch.add(event);
         str = batch.toString();
         Assert.assertEquals(str, "[{\"event\":\"metric\",\"fields\":\"ni\"},]");
-        // Assert.assertEquals(str, "[{\"fields\":\"ni\"},]");
     }
 
     @Test
@@ -150,7 +146,6 @@ public class MetricEventBatchTest {
         System.out.println(siz);
         // TODO: figure this out
         String expected = "{\"event\":\"metric\",\"fields\":\"ni\"}\n";
-        // String expected = "{\"fields\":\"ni\"}\n";
         Assert.assertEquals(expected, new String(data, 0, siz));
 
         // Write to a OutputStream
@@ -189,7 +184,6 @@ public class MetricEventBatchTest {
         byte[] data = new byte[1024];
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             entity.writeTo(out);
-            // String expected = "{\"event\":\"metric\",\"fields\":\"hello world! hello world! hello world!\"}\n";
             String expected = "{\"fields\":\"hello world! hello world! hello world!\"}\n";
 
             ByteArrayInputStream bis = new ByteArrayInputStream(out.toByteArray());
