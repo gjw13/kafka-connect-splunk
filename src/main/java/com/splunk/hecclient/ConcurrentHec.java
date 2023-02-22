@@ -56,7 +56,6 @@ public class ConcurrentHec implements HecInf {
 
     @Override
     public final void send(final EventBatch batch) {
-        log.info("In hec.send(batch)");
         try {
             boolean offerSuccess = batches.offer(batch, 1000, TimeUnit.MILLISECONDS);
             if (!offerSuccess) {
@@ -91,9 +90,7 @@ public class ConcurrentHec implements HecInf {
             }
 
             if (batch != null) {
-                log.info("Sending batch from ConcurrentHec send: " + batch.toString());
                 send(hec, batch);
-                log.info("After ConcurrentHec send");
             }
         }
         hec.close();

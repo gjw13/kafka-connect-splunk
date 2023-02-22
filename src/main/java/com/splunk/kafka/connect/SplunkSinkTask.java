@@ -111,7 +111,6 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
         } else if (connectorConfig.metric) {
             /* /services/collector endpoint */
             handleMetric(records);
-            log.info("Got out of handleMetric");
         } else {
             /* /services/collector/event endpoint */
             handleEvent(records);
@@ -290,8 +289,6 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
             Event event;
             try {
                 event = createHecEventFrom(record);
-                log.info("Event after createHecEventFrom: " + event.toString());
-                // {"index":"test_metric","event":"metric","fields":{"env":"dev","forwarder_type":"connect","library":"jidb","metadata.os":"ubuntu","metadata.os_version":"20","time":1676660122365,"metric_name:test":59.63}}
             } catch (HecEmptyEventException | HecNullEventException ex) {
                 log.warn("Ignoring Null/Empty event for topicPartitionOffset=({}, {}, {})",
                         record.topic(), record.kafkaPartition(), record.kafkaOffset(), ex);
@@ -302,9 +299,7 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
                 event = createHecEventFromMalformed(record);
             }
 
-            // log.info("Right before batch.add(event) call. Batch: " + batch.toString());
             batch.add(event);
-            // log.info("Batch: " + batch.toString());
             if (batch.size() >= connectorConfig.maxBatchSize) {
                 send(batch);
                 // start a new batch after send
@@ -320,7 +315,6 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
     }
 
     private void send(final EventBatch batch) {
-        log.info("In send batch");
         batch.resetSendTimestamp();
         tracker.addEventBatch(batch);
         try {
@@ -419,10 +413,7 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
         }
 
         if (connectorConfig.metric) {
-            log.info("Creating metric event from record with value: " + record.value().toString());
-            MetricEvent event = createHECMetric(record);
-            log.info("Event after createHecMetric: " + event.toString());
-            return event;
+            return createHECMetric(record);
         }
 
         JsonEvent event;
@@ -527,7 +518,6 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
 
     private MetricEvent createHECMetric(final SinkRecord record) {
         MetricEvent event = new MetricEvent(record.value(), record);
-        log.info("Event immediately after initialization: " + event.toString());
         if (connectorConfig.useRecordTimestamp && record.timestamp() != null) {
             event.setTime(record.timestamp() / 1000.0);
         }

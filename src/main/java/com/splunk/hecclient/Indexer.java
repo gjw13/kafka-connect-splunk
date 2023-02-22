@@ -134,15 +134,12 @@ final class Indexer implements IndexerInf {
     public boolean send(final EventBatch batch) {
         String endpoint = batch.getRestEndpoint();
         String url = baseUrl + endpoint;
-        log.info("URL: " + url); // https://idb.splunk.viasat.io:8088/services/collector
         final HttpPost httpPost = new HttpPost(url);
         httpPost.setHeaders(headers);
-        // log.info("httpPost headers: " + httpPost.getAllHeaders());
         if (batch.isEnableCompression()) {
             httpPost.setHeader("Content-Encoding", "gzip");
             httpPost.setEntity(batch.getHttpEntityTemplate());
         } else {
-            log.info("Batch HTTP Entity: " + batch.getHttpEntity()); // [Content-Type: application/json; profile=urn:splunk:event:1.0; charset=utf-8,Content-Length: 2585,Chunked: false]
             httpPost.setEntity(batch.getHttpEntity());
         }
         String resp;
@@ -191,11 +188,7 @@ final class Indexer implements IndexerInf {
             }
         } else {
             try {
-                log.info("Request: " + req + " | Context: " + context);
-                // Request: POST https://idb.splunk.viasat.io:8088/services/collector HTTP/1.1
                 resp = httpClient.execute(req, context);
-                // HttpResponseProxy{HTTP/1.1 400 Bad Request [Date: Fri, 17 Feb 2023 21:05:16 GMT, Content-Type: application/json; charset=UTF-8, Content-Length: 27, Connection: keep-alive, X-Content-Type-Options: nosniff, Vary: Authorization, X-Frame-Options: SAMEORIGIN, Server: Splunkd] ResponseEntityProxy{[Content-Type: application/json; charset=UTF-8,Content-Length: 27,Chunked: false]}}
-                log.info(resp.toString());
             } catch (Exception ex) {
                 logBackPressure();
                 throw new HecException("encountered exception when post data", ex);

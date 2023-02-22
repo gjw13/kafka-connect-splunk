@@ -181,7 +181,6 @@ public abstract class EventBatch {
 
         @Override
         public long getContentLength() {
-            log.info("Getting content length: " + length());
             return length();
         }
 
@@ -210,7 +209,6 @@ public abstract class EventBatch {
         @Override
         public void writeTo(OutputStream outstream) throws IOException {
             for (final Event e : events) {
-                log.info("writeTo event: " + e.toString());
                 e.writeTo(outstream);
             }
         }

@@ -87,62 +87,12 @@ public final class MetricEvent extends Event {
      * @since              1.0
      */
     public Object getFields() {
-        // Map<String, String> mapping = null;
-        // try {
-        //     mapping = new ObjectMapper().readValue(fields.toString(), Map.class);
-        // } catch (Exception ex) {
-        //     throw new HecException("failed to json serialized JsonEvent", ex);
-        // }
-        // return mapping;
         return fields;
     }
 
     public final String getEvent() {
         return event;
     }
-
-    // /**
-    //  * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
-    //  * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
-    //  * This differs from the setFields method as it will append any extra fields to the the
-    //  *
-    //  * @param extraFields  Object representation of the event with associated meta-data.
-    //  * @return             Current representation of MetricEvent.
-    //  * @see                MetricEvent
-    //  * @since              1.0
-    //  */
-    // @Override
-    // public MetricEvent addFields(final Map<String, String> extraFields) {
-    //     if (extraFields == null || extraFields.isEmpty()) {
-    //         return this;
-    //     }
-
-    //     if (fields == null) {
-    //         fields = new HashMap<>();
-    //     }
-
-    //     fields.putAll(extraFields);
-    //     invalidate();
-
-    //     return this;
-    // }
-
-    // /**
-    //  * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
-    //  * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
-    //  * This differs from the addFields method as it will replace any fields that are currently associated to this object.
-    //  *
-    //  * @param extraFields  Object representation of the event with associated meta-data.
-    //  * @return             Current representation of MetricEvent.
-    //  * @see                MetricEvent
-    //  * @since              1.0
-    //  */
-    // @Override
-    // public MetricEvent setFields(final Map<String, String> extraFields) {
-    //     fields = extraFields;
-    //     invalidate();
-    //     return this;
-    // }
 
     /**
      * Using ObjectMapper the MetricEvent is serialized to a String and returned.
@@ -156,14 +106,10 @@ public final class MetricEvent extends Event {
     @Override
     public String toString() {
         try {
-            //backtrace here
-            log.warn("calling toString for MetricEvent");
-            // Thread.currentThread().dumpStack();
-            // return jsonMapper.writeValueAsString(this).replace("metricFields", "fields");
             return jsonMapper.writeValueAsString(this);
         } catch (Exception ex) {
-            System.out.println("failed to json serlized MetricEvent: " + ex.toString());
-            throw new HecException("failed to json serialized JsonEvent", ex);
+            System.out.println("failed to json serialize MetricEvent: " + ex.toString());
+            throw new HecException("failed to json serialize MetricEvent", ex);
         }
     }
 
@@ -181,7 +127,6 @@ public final class MetricEvent extends Event {
      */
     @Override
     public byte[] getBytes() {
-        log.info("Calling getBytes for MetricEvent");
         if (bytes != null) {
             return bytes;
         }
@@ -212,7 +157,6 @@ public final class MetricEvent extends Event {
     @JsonIgnore
     public void extractTimestamp() {
         String jsonStr = this.getFields().toString();
-        log.info("Fields: " + jsonStr);
         String string = jsonStr.replaceAll("\\\"", "\"");
         String timestamp = "";
 
