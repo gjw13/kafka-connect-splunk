@@ -48,7 +48,6 @@ public class MetricEventTest {
     public void createValidMetricEventWithStruct(){
         SinkRecord rec = new SinkRecord("test_topic", 1, null, "test", null, struct, 0, 0L, TimestampType.NO_TIMESTAMP_TYPE);
         MetricEvent event = new MetricEvent(rec.value(), rec);
-        // System.out.println(event);
         event.setIndex("test-index");
         event.setSourcetype("test-sourcetype");
         event.setSource("test-source");
@@ -88,7 +87,7 @@ public class MetricEventTest {
         SerialAndDeserial sad = new SerialAndDeserial() {
             @Override
             public Event serializeAndDeserialize(Event event) {
-                String stringed = event.toString().replace("\"fields\"", "\"Fields\"");
+                String stringed = event.toString();
                 Assert.assertNotNull(stringed);
 
                 Event deserilized;
@@ -198,7 +197,6 @@ public class MetricEventTest {
 
         Map<String, String> fields = new HashMap<>();
         fields.put("ni", "hao");
-        event.addMetadata(fields);
         event.setHost("localhost");
         event.setIndex("main");
         event.setSource("test-source");

@@ -111,7 +111,6 @@ public final class LoadBalancer implements LoadBalancerInf {
             HecChannel channel = channels.get(index);
             index = (index + 1) % channels.size();
             if (!channel.hasBackPressure() && !channel.isNotAvailable()) {
-                log.info("Channel attempt to send batch: " + batch.toString());
                 channel.send(batch);
                 return;
             }

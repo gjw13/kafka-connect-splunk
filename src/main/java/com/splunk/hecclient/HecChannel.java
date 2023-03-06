@@ -16,15 +16,11 @@
 package com.splunk.hecclient;
 
 import org.apache.http.client.methods.HttpUriRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 final class HecChannel {
-    private static final Logger log = LoggerFactory.getLogger(HecChannel.class);
-
     private String id;
     private Map<String, String> chField;
     private IndexerInf indexer;
@@ -62,7 +58,6 @@ final class HecChannel {
         if (chField != null) {
             batch.addExtraMetadata(chField);
         }
-        log.info("Indexer attempt to send batch: " + batch.toString());
         indexer.send(batch);
     }
 

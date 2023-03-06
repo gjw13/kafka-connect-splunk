@@ -101,7 +101,6 @@ public class MetricEventBatchTest {
         Assert.assertTrue(batch.isCommitted());
 
         Event event = new MetricEvent("ni", "hao");
-        System.out.println(event.toString());
         batch.add(event);
         String data = "{\"event\":\"metric\",\"fields\":\"ni\"}";
         Assert.assertEquals(data.length() + 1, batch.length());
@@ -143,8 +142,6 @@ public class MetricEventBatchTest {
         Assert.assertEquals(event.length(), entity.getContentLength());
 
         siz = readContent(entity, data);
-        System.out.println(siz);
-        // TODO: figure this out
         String expected = "{\"event\":\"metric\",\"fields\":\"ni\"}\n";
         Assert.assertEquals(expected, new String(data, 0, siz));
 
@@ -184,7 +181,7 @@ public class MetricEventBatchTest {
         byte[] data = new byte[1024];
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             entity.writeTo(out);
-            String expected = "{\"fields\":\"hello world! hello world! hello world!\"}\n";
+            String expected = "{\"event\":\"metric\",\"fields\":\"hello world! hello world! hello world!\"}\n";
 
             ByteArrayInputStream bis = new ByteArrayInputStream(out.toByteArray());
             GZIPInputStream gis = new GZIPInputStream(bis);

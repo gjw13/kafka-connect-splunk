@@ -28,8 +28,6 @@ import java.security.SecureRandom;
 import java.security.KeyManagementException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -59,8 +57,6 @@ import org.apache.kafka.connect.errors.ConnectException;
  * @see         HecAckPoller
  */
 public class Hec implements HecInf {
-    private static final Logger log = LoggerFactory.getLogger(ConcurrentHec.class);
-
     private LoadBalancerInf loadBalancer;
     private Poller poller;
     private CloseableHttpClient httpClient;
@@ -236,8 +232,6 @@ public class Hec implements HecInf {
         if (batch.isEmpty()) {
             return;
         }
-        // TODO: log this
-        log.info("Calling loadbalancer send batch from Hec.send()");
         loadBalancer.send(batch);
     }
 
