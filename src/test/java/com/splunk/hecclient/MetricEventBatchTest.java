@@ -23,54 +23,52 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
-public class JsonEvenBatchTest {
+public class MetricEventBatchTest {
     @Test
     public void add() {
-        Event event = new JsonEvent("ni", "hao");
-        EventBatch batch = new JsonEventBatch();
+        Event event = new MetricEvent("ni", "hao");
+        EventBatch batch = new MetricEventBatch();
         batch.add(event);
         List<Event> events = batch.getEvents();
         Assert.assertEquals(events.size(), 1);
         Event eventGot = events.get(0);
-        Assert.assertEquals(event.getEvent(), eventGot.getEvent());
+        Assert.assertEquals(event.getFields(), eventGot.getFields());
         Assert.assertEquals(event.getTied(), eventGot.getTied());
     }
 
     @Test(expected = HecException.class)
     public void addWithFailure() {
         Event event = new RawEvent("ni", "hao");
-        EventBatch batch = new JsonEventBatch();
+        EventBatch batch = new MetricEventBatch();
         batch.add(event);
     }
 
     @Test
     public void getRestEndpoint() {
-        EventBatch batch = new JsonEventBatch();
-        Assert.assertEquals(batch.getRestEndpoint(), JsonEventBatch.endpoint);
+        EventBatch batch = new MetricEventBatch();
+        Assert.assertEquals(batch.getRestEndpoint(), MetricEventBatch.endpoint);
     }
 
     @Test
     public void getContentType() {
-        EventBatch batch = new JsonEventBatch();
-        Assert.assertEquals(batch.getContentType(), JsonEventBatch.contentType);
+        EventBatch batch = new MetricEventBatch();
+        Assert.assertEquals(batch.getContentType(), MetricEventBatch.contentType);
     }
 
     @Test
     public void createFromThis() {
-        EventBatch batch = new JsonEventBatch();
+        EventBatch batch = new MetricEventBatch();
         EventBatch jsonBatch = batch.createFromThis();
         Assert.assertNotNull(jsonBatch);
-        Assert.assertTrue(jsonBatch instanceof JsonEventBatch);
+        Assert.assertTrue(jsonBatch instanceof MetricEventBatch);
     }
 
     @Test
     public void isTimedout() {
-        EventBatch batch = new JsonEventBatch();
+        EventBatch batch = new MetricEventBatch();
         batch.resetSendTimestamp();
         Assert.assertFalse(batch.isTimedout(1));
         UnitUtil.milliSleep(1000);
@@ -83,7 +81,7 @@ public class JsonEvenBatchTest {
 
     @Test
     public void setterGetter() {
-        EventBatch batch = new JsonEventBatch();
+        EventBatch batch = new MetricEventBatch();
         Assert.assertTrue(batch.isEmpty());
         Assert.assertEquals(batch.length(), 0);
         Assert.assertEquals(batch.size(), 0);
@@ -102,39 +100,32 @@ public class JsonEvenBatchTest {
         batch.commit();
         Assert.assertTrue(batch.isCommitted());
 
-        Event event = new JsonEvent("ni", "hao");
+        Event event = new MetricEvent("ni", "hao");
         batch.add(event);
-        String data = "{\"event\":\"ni\"}";
+        String data = "{\"event\":\"metric\",\"fields\":\"ni\"}";
         Assert.assertEquals(data.length() + 1, batch.length());
         Assert.assertEquals(1, batch.size());
         Assert.assertFalse(batch.isEmpty());
 
         List<Event> events = batch.getEvents();
         Assert.assertEquals(1, events.size());
-
-        // Add extra fields
-        Map<String, String> fields = new HashMap<>();
-        fields.put("hello", "world");
-        batch.addExtraMetadata(fields);
-
-        Assert.assertEquals(fields, event.getMetadata());
     }
 
     @Test
     public void toStr() {
-        EventBatch batch = new JsonEventBatch();
+        EventBatch batch = new MetricEventBatch();
         String str = batch.toString();
         Assert.assertEquals("[]", str);
 
-        Event event = new JsonEvent("ni", "hao");
+        Event event = new MetricEvent("ni", "hao");
         batch.add(event);
         str = batch.toString();
-        Assert.assertEquals(str, "[{\"event\":\"ni\"},]");
+        Assert.assertEquals(str, "[{\"event\":\"metric\",\"fields\":\"ni\"},]");
     }
 
     @Test
     public void getHttpEntity() {
-        EventBatch batch = new JsonEventBatch();
+        EventBatch batch = new MetricEventBatch();
         HttpEntity entity = batch.getHttpEntity();
         Assert.assertTrue(entity.isRepeatable());
         Assert.assertFalse(entity.isStreaming());
@@ -144,14 +135,14 @@ public class JsonEvenBatchTest {
         int siz = readContent(entity, data);
         Assert.assertEquals(0, siz);
 
-        Event event = new JsonEvent("ni", "hao");
+        Event event = new MetricEvent("ni", "hao");
         batch.add(event);
 
         entity = batch.getHttpEntity();
         Assert.assertEquals(event.length(), entity.getContentLength());
 
         siz = readContent(entity, data);
-        String expected = "{\"event\":\"ni\"}\n";
+        String expected = "{\"event\":\"metric\",\"fields\":\"ni\"}\n";
         Assert.assertEquals(expected, new String(data, 0, siz));
 
         // Write to a OutputStream
@@ -180,17 +171,18 @@ public class JsonEvenBatchTest {
     }
 
     @Test
-    public void testGZIPCompressionForJsonEvent() {
-        EventBatch batch = new JsonEventBatch();
+    public void testGZIPCompressionForMetricEvent() {
+        EventBatch batch = new MetricEventBatch();
         batch.setEnableCompression(true);
         Assert.assertTrue(batch.isEnableCompression());
-        Event event = new JsonEvent("hello world! hello world! hello world!", "hao");
+        Event event = new MetricEvent("hello world! hello world! hello world!", "hao");
         batch.add(event);
         HttpEntity entity = batch.getHttpEntityTemplate();
         byte[] data = new byte[1024];
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             entity.writeTo(out);
-            String expected = "{\"event\":\"hello world! hello world! hello world!\"}\n";
+            String expected = "{\"event\":\"metric\",\"fields\":\"hello world! hello world! hello world!\"}\n";
+
             ByteArrayInputStream bis = new ByteArrayInputStream(out.toByteArray());
             GZIPInputStream gis = new GZIPInputStream(bis);
             int read = gis.read(data, 0, data.length);

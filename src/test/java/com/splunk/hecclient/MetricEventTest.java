@@ -16,77 +16,70 @@
 package com.splunk.hecclient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.common.record.TimestampType;
 import org.junit.Assert;
 import org.junit.Test;
 
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class JsonEventTest {
+public class MetricEventTest {
     static final ObjectMapper jsonMapper = new ObjectMapper();
 
+    final Schema schemaTest = SchemaBuilder.struct()
+                .name("test")
+                .field("time", Schema.INT64_SCHEMA)
+                .field("metric_name:test", Schema.FLOAT64_SCHEMA)
+                .field("env", Schema.STRING_SCHEMA)
+                .build();
+
+    final Struct struct = new Struct(schemaTest)
+                .put("time", 15000000L)
+                .put("metric_name:test", 0.0)
+                .put("env", "dev");
+
     @Test
-    public void createValidJsonEvent() {
+    public void createValidMetricEventWithStruct(){
+        SinkRecord rec = new SinkRecord("test_topic", 1, null, "test", null, struct, 0, 0L, TimestampType.NO_TIMESTAMP_TYPE);
+        MetricEvent event = new MetricEvent(rec.value(), rec);
+        event.setIndex("test-index");
+        event.setSourcetype("test-sourcetype");
+        event.setSource("test-source");
+        event.extractTimestamp();
+        Assert.assertEquals(struct, event.getFields());
+    }
+
+    @Test
+    public void createValidMetricEvent() {
         String data = "this is splunk event";
 
         // without tied object
-        Event event = new JsonEvent(data, null);
-        Assert.assertEquals(data, event.getEvent());
+        Event event = new MetricEvent(data, null);
+        Assert.assertEquals(data, event.getFields());
         Assert.assertEquals(null, event.getTied());
 
         // with tied object
         String tied = "i love you";
-        event = new JsonEvent(data, tied);
+        event = new MetricEvent(data, tied);
 
         Assert.assertEquals(tied, event.getTied());
-        Assert.assertEquals(data, event.getEvent());
+        Assert.assertEquals(data, event.getFields());
     }
 
     @Test(expected = HecException.class)
-    public void createInvalidJsonEventWithNullData() {
-        Event event = new JsonEvent(null, null);
+    public void createInvalidMetricEventWithNullData() {
+        Event event = new MetricEvent(null, null);
     }
 
     @Test(expected = HecException.class)
-    public void createInvalidJsonEventWithEmptyString() {
-        Event event = new JsonEvent("", null);
-    }
-
-    @Test
-    public void addMetadata() {
-        Event event = new JsonEvent("this is splunk event", null);
-
-        // null extra fields
-        event.addMetadata(null);
-        Assert.assertNull(event.getMetadata());
-
-        // empty extra fields
-        Map<String, String> fields = new HashMap<>();
-        event.addMetadata(fields);
-        Assert.assertNull(event.getMetadata());
-
-        // one item
-        fields.put("ni", "hao");
-        event.addMetadata(fields);
-        Map<String, String> fieldsGot = event.getMetadata();
-        Assert.assertNotNull(fieldsGot);
-        Assert.assertEquals(false, fieldsGot.isEmpty());
-        Assert.assertEquals(1, fieldsGot.size());
-        Assert.assertEquals("hao", fieldsGot.get("ni"));
-
-        // put another one
-        fields.put("hello", "world");
-        event.addMetadata(fields);
-        fieldsGot = event.getMetadata();
-        Assert.assertNotNull(fieldsGot);
-        Assert.assertEquals(false, fieldsGot.isEmpty());
-        Assert.assertEquals(2, fieldsGot.size());
-        Assert.assertEquals("hao", fieldsGot.get("ni"));
-        Assert.assertEquals("world", fieldsGot.get("hello"));
+    public void createInvalidMetricEventWithEmptyString() {
+        Event event = new MetricEvent("", null);
     }
 
     @Test
@@ -99,10 +92,10 @@ public class JsonEventTest {
 
                 Event deserilized;
                 try {
-                    deserilized = jsonMapper.readValue(stringed, JsonEvent.class);
+                    deserilized = jsonMapper.readValue(stringed, MetricEvent.class);
                 } catch (IOException ex) {
                     Assert.assertFalse("expect no exception but got exception", true);
-                    throw new HecException("failed to parse JsonEvent", ex);
+                    throw new HecException("failed to parse MetricEvent", ex);
                 }
                 return deserilized;
             }
@@ -120,10 +113,10 @@ public class JsonEventTest {
 
                 Event deserilized;
                 try {
-                    deserilized = jsonMapper.readValue(bytes, JsonEvent.class);
+                    deserilized = jsonMapper.readValue(bytes, MetricEvent.class);
                 } catch (IOException ex) {
                     Assert.assertFalse("expect no exception but got exception", false);
-                    throw new HecException("failed to parse JsonEvent", ex);
+                    throw new HecException("failed to parse MetricEvent", ex);
                 }
                 return deserilized;
             }
@@ -133,25 +126,25 @@ public class JsonEventTest {
 
     @Test
     public void getInputStream() {
-        Event event = new JsonEvent("hello", "world");
+        Event event = new MetricEvent("hello", "world");
         InputStream stream = event.getInputStream();
         byte[] data = new byte[1024];
         int siz = UnitUtil.read(stream, data);
 
         Event eventGot;
         try {
-            eventGot = jsonMapper.readValue(data, 0, siz, JsonEvent.class);
+            eventGot = jsonMapper.readValue(data, 0, siz, MetricEvent.class);
         } catch (IOException ex) {
             Assert.assertTrue("failed to deserialize from bytes", false);
             throw new HecException("failed to deserialize from bytes", ex);
         }
-        Assert.assertEquals("hello", eventGot.getEvent());
+        Assert.assertEquals("hello", eventGot.getFields());
     }
 
     @Test
     public void getterSetter() {
-        Event event = new JsonEvent("hello", "world");
-        Assert.assertEquals("hello", event.getEvent());
+        Event event = new MetricEvent("hello", "world");
+        Assert.assertEquals("hello", event.getFields());
         Assert.assertEquals("world", event.getTied());
 
         Assert.assertNull(event.getIndex());
@@ -174,25 +167,8 @@ public class JsonEventTest {
         event.setTime(1.0);
         Assert.assertEquals(new Double(1.0), event.getTime());
 
-        event.setEvent("ni");
-        Assert.assertEquals("ni", event.getEvent());
-
         event.setTied("hao");
         Assert.assertEquals("hao", event.getTied());
-
-        Map<String, String> fields = new HashMap<>();
-        fields.put("hello", "world");
-        event.setMetadata(fields);
-        Assert.assertEquals(fields, event.getMetadata());
-
-        Map<String, String> moreMetadata = new HashMap<>();
-        moreMetadata.put("ni", "hao");
-        event.addMetadata(moreMetadata);
-        Map<String, String> got = event.getMetadata();
-        Assert.assertNotNull(got);
-        Assert.assertEquals(2, got.size());
-        Assert.assertEquals("world", got.get("hello"));
-        Assert.assertEquals("hao", got.get("ni"));
     }
 
     private interface SerialAndDeserial {
@@ -217,11 +193,10 @@ public class JsonEventTest {
 
     private void doSerialize(Object data, SerialAndDeserial sad) {
         String tied = "tied";
-        Event event = new JsonEvent(data, tied);
+        Event event = new MetricEvent(data, tied);
 
         Map<String, String> fields = new HashMap<>();
         fields.put("ni", "hao");
-        event.addMetadata(fields);
         event.setHost("localhost");
         event.setIndex("main");
         event.setSource("test-source");
@@ -231,16 +206,13 @@ public class JsonEventTest {
         for (int i = 0; i < 2; i++) {
             Event deserialized = sad.serializeAndDeserialize(event);
 
-            Assert.assertEquals(data, deserialized.getEvent());
+            Assert.assertEquals(data, deserialized.getFields());
             Assert.assertNull(deserialized.getTied()); // we ignore tied when serialize Event
             Assert.assertEquals("localhost", deserialized.getHost());
             Assert.assertEquals("main", deserialized.getIndex());
             Assert.assertEquals("test-source", deserialized.getSource());
             Assert.assertEquals("test-sourcetype", deserialized.getSourcetype());
             Assert.assertEquals(event.getTime(), deserialized.getTime());
-
-            Map<String, String> fieldsGot = deserialized.getMetadata();
-            Assert.assertEquals("hao", fieldsGot.get("ni"));
         }
     }
 }

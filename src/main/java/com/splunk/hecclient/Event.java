@@ -29,7 +29,7 @@ import java.util.TimeZone;
 
 /**
  * Event is an abstract class that represents a bare bones implementation of a Splunk Event. Every event that arrives
- * in Splunk must have a time, host, index, source and sourcetype. Event is extended by the JsonEvent and RawEvent
+ * in Splunk must have a time, host, index, source and sourcetype. Event is extended by the JsonEvent, RawEvent, and MetricEvent
  * classes which are used depending on which Splunk HEC endpoint will be used when sending events to Splunk.
  * <p>
  * This class contains getter and setter methods with a few convenience functions such as validation and Input and
@@ -85,6 +85,7 @@ public abstract class Event {
      * @since           1.0.0
      * @see JsonEvent
      * @see RawEvent
+     * @see MetricEvent
      */
     public Event(Object eventData, Object tiedObj) {
         checkEventData(eventData);
@@ -99,6 +100,7 @@ public abstract class Event {
      * @since   1.0.0
      * @see     JsonEvent
      * @see     RawEvent
+     * @see     MetricEvent
      */
     Event() {
     }
@@ -228,7 +230,7 @@ public abstract class Event {
         return index;
     }
 
-    public final Object getEvent() {
+    public Object getEvent() {
         return event;
     }
 
@@ -240,15 +242,19 @@ public abstract class Event {
         return tied;
     }
 
-    public Event addFields(final Map<String, String> fields) {
+    public Event addMetadata(final Map<String, String> metadata) {
         return this;
     }
 
-    public Event setFields(final Map<String, String> fields) {
+    public Event setMetadata(final Map<String, String> metadata) {
         return this;
     }
 
-    public Map<String, String> getFields() {
+    public Map<String, String> getMetadata() {
+        return null;
+    }
+
+    public Object getFields() {
         return null;
     }
 
@@ -286,10 +292,10 @@ public abstract class Event {
     }
 
     /**
-     * Retrieves byte representation of Event's extended classes JsonEvent and RawEvent and writes bytes to OutputStream
+     * Retrieves byte representation of Event's extended classes JsonEvent, RawEvent, MetricEvent and writes bytes to OutputStream
      * provided as a parameter. After the Event is written to stream a linebreak is also written to separate events.
      *
-     * @param out OutputStream to write byte representation of Event(JSONEvent, RawEvent) to.
+     * @param out OutputStream to write byte representation of Event(JSONEvent, RawEvent, MetricEvent) to.
      *
      * @throws  IOException
      * @see     java.io.OutputStream
@@ -307,11 +313,12 @@ public abstract class Event {
     /**
      * Will attempt to convert current Event into bytes and raise an HECException on issue. This will most likely occur
      * if JSON Marshalling fails on an invalid JSON representation of an event. getBytes() is implemented within the
-     * extended Event classes JSONEvent and RawEvent. Nothing will happen on a successful validation.
+     * extended Event classes JSONEvent, RawEvent, and MetricEvent. Nothing will happen on a successful validation.
      *
      * @throws  HecException
      * @see     JsonEvent
      * @see     RawEvent
+     * @see     MetricEvent
      * @since   1.0.0
      */
     public void validate() throws HecException {
@@ -329,12 +336,13 @@ public abstract class Event {
     }
 
     /**
-     * Will return a byteArray representing of the JsonEvent or RawEvent classes. These classes use Jackson Annotations
+     * Will return a byteArray representing of the JsonEvent, RawEvent, or MetricEvent classes. These classes use Jackson Annotations
      * and the Jackson ObjectMapper to achieve this.
      *
      * @see     HecException
      * @see     JsonEvent
      * @see     RawEvent
+     * @see     MetricEvent
      * @since   1.0.0
      */
     public abstract byte[] getBytes() throws HecException;

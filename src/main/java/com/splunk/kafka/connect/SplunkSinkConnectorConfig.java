@@ -65,6 +65,7 @@ public final class SplunkSinkConnectorConfig extends AbstractConfig {
     static final String HEC_BACKOFF_PRESSURE_THRESHOLD = "splunk.hec.backoff.threshhold.seconds";
     // Endpoint Parameters
     static final String RAW_CONF = "splunk.hec.raw";
+    static final String METRIC_CONF = "splunk.hec.metric";
     // /raw endpoint only
     static final String LINE_BREAKER_CONF = "splunk.hec.raw.line.breaker";
     // /event endpoint only
@@ -155,6 +156,9 @@ public final class SplunkSinkConnectorConfig extends AbstractConfig {
     // Endpoint Parameters
     static final String RAW_DOC = "Set to true in order for Splunk software to ingest data using the the /raw HEC "
             + "endpoint. Default is false, which will use the /event endpoint.";
+    static final String METRIC_DOC = "Set to true in order for Splunk software to ingest data to a metric index using "
+            + "the /services/collector endpoint. Default is false, which will use the /event endpoint. Cannot be used with "
+            + "splunk.hec.raw set to true";
     // /raw endpoint only
     static final String LINE_BREAKER_DOC = "Only applicable to /raw HEC endpoint. The setting is used to specify a custom "
             + "line breaker to help Splunk separate the events correctly. Note: For example"
@@ -229,6 +233,7 @@ public final class SplunkSinkConnectorConfig extends AbstractConfig {
     final int backoffThresholdSeconds;
 
     final boolean raw;
+    final boolean metric;
     final boolean hecEventFormatted;
 
     final String lineBreaker;
@@ -260,6 +265,7 @@ public final class SplunkSinkConnectorConfig extends AbstractConfig {
         splunkToken = getPassword(TOKEN_CONF).value();
         splunkURI = getString(URI_CONF);
         raw = getBoolean(RAW_CONF);
+        metric = getBoolean(METRIC_CONF);
         ack = getBoolean(ACK_CONF);
         indexes = getString(INDEX_CONF);
         sourcetypes = getString(SOURCETYPE_CONF);
@@ -317,6 +323,7 @@ public final class SplunkSinkConnectorConfig extends AbstractConfig {
                 .define(TOKEN_CONF, ConfigDef.Type.PASSWORD, ConfigDef.Importance.HIGH, TOKEN_DOC)
                 .define(URI_CONF, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, URI_DOC)
                 .define(RAW_CONF, ConfigDef.Type.BOOLEAN, false, ConfigDef.Importance.MEDIUM, RAW_DOC)
+                .define(METRIC_CONF, ConfigDef.Type.BOOLEAN, false, ConfigDef.Importance.MEDIUM, METRIC_DOC)
                 .define(ACK_CONF, ConfigDef.Type.BOOLEAN, false, ConfigDef.Importance.MEDIUM, ACK_DOC)
                 .define(INDEX_CONF, ConfigDef.Type.STRING, "", ConfigDef.Importance.MEDIUM, INDEX_DOC)
                 .define(SOURCETYPE_CONF, ConfigDef.Type.STRING, "", ConfigDef.Importance.MEDIUM, SOURCETYPE_DOC)
@@ -392,6 +399,7 @@ public final class SplunkSinkConnectorConfig extends AbstractConfig {
     public String toString() {
         return "splunkURI:" + splunkURI + ", "
                 + "raw:" + raw + ", "
+                + "metric:" + metric + ", "
                 + "ack:" + ack + ", "
                 + "indexes:" + indexes + ", "
                 + "sourcetypes:" + sourcetypes + ", "

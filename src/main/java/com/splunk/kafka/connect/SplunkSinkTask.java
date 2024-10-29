@@ -106,10 +106,13 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
         bufferedRecords = new ArrayList<>();
         lastFlushed = System.currentTimeMillis();
         if (connectorConfig.raw) {
-            /* /raw endpoint */
+            /* /services/collector/raw endpoint */
             handleRaw(records);
+        } else if (connectorConfig.metric) {
+            /* /services/collector endpoint */
+            handleMetric(records);
         } else {
-            /* /event endpoint */
+            /* /services/collector/event endpoint */
             handleEvent(records);
         }
         logDuration(startTime);
@@ -275,6 +278,12 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
         sendEvents(records, batch);
     }
 
+    private void handleMetric(final Collection<SinkRecord> records) {
+        MetricEventBatch batch = new MetricEventBatch();
+        batch.setEnableCompression(connectorConfig.enableCompression);
+        sendEvents(records, batch);
+    }
+
     private void sendEvents(final Collection<SinkRecord> records, EventBatch batch) {
         for (final SinkRecord record: records) {
             Event event;
@@ -403,6 +412,10 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
             return event;
         }
 
+        if (connectorConfig.metric) {
+            return createHECMetric(record);
+        }
+
         JsonEvent event;
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -410,7 +423,7 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
             try {
                 event = objectMapper.readValue(record.value().toString(), JsonEvent.class);
                 event.setTied(record);
-                event.addFields(connectorConfig.enrichments);
+                event.addMetadata(connectorConfig.enrichments);
             } catch(Exception e) {
                 log.error("event does not follow correct HEC pre-formatted format: {}", record.value().toString());
                 event = createHECEventNonFormatted(record);
@@ -432,7 +445,7 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
             trackMetas.put("kafka_record_key", String.valueOf(record.key()));
             if (HOSTNAME != null)
                 trackMetas.put("kafka_connect_host", HOSTNAME);
-            event.addFields(trackMetas);
+            event.addMetadata(trackMetas);
         }
         event.validate();
 
@@ -478,7 +491,7 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
                     }
                 }
             }
-            event.addFields(headerMap);
+            event.addMetadata(headerMap);
         }
         return event;
     }
@@ -498,7 +511,26 @@ public final class SplunkSinkTask extends SinkTask implements PollerCallback {
             event.setIndex(metas.get(SplunkSinkConnectorConfig.INDEX));
             event.setSourcetype(metas.get(SplunkSinkConnectorConfig.SOURCETYPE));
             event.setSource(metas.get(SplunkSinkConnectorConfig.SOURCE));
-            event.addFields(connectorConfig.enrichments);
+            event.addMetadata(connectorConfig.enrichments);
+        }
+        return event;
+    }
+
+    private MetricEvent createHECMetric(final SinkRecord record) {
+        MetricEvent event = new MetricEvent(record.value(), record);
+        if (connectorConfig.useRecordTimestamp && record.timestamp() != null) {
+            event.setTime(record.timestamp() / 1000.0);
+        }
+
+        if(connectorConfig.enableTimestampExtraction) {
+            event.extractTimestamp();
+         }
+
+        Map<String, String> metas = connectorConfig.topicMetas.get(record.topic());
+        if (metas != null) {
+            event.setIndex(metas.get(SplunkSinkConnectorConfig.INDEX));
+            event.setSourcetype(metas.get(SplunkSinkConnectorConfig.SOURCETYPE));
+            event.setSource(metas.get(SplunkSinkConnectorConfig.SOURCE));
         }
         return event;
     }

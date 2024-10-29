@@ -193,11 +193,11 @@ public class RawEventTest {
         Event event = new RawEvent("ni", null);
         Map<String, String> m = new HashMap<String, String>();
         m.put("hello", "world");
-        event.setFields(m);
-        Assert.assertNull(event.getFields()); // we ignore extra fields for raw event
+        event.setMetadata(m);
+        Assert.assertNull(event.getMetadata()); // we ignore extra fields for raw event
 
-        event.addFields(m);
-        Assert.assertNull(event.getFields()); // we ignore extra fields for raw event
+        event.addMetadata(m);
+        Assert.assertNull(event.getMetadata()); // we ignore extra fields for raw event
     }
 
     @Test

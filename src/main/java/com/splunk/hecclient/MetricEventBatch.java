@@ -17,17 +17,17 @@ package com.splunk.hecclient;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-public final class JsonEventBatch extends EventBatch {
-    public static final String endpoint = "/services/collector/event";
-    public static final String contentType = "application/json; profile=urn:splunk:event:1.0; charset=utf-8";
+public final class MetricEventBatch extends EventBatch {
+    public static final String endpoint = "/services/collector";
+    public static final String contentType = "application/json; charset=utf-8";
 
     @Override
     public void add(Event event) {
-        if (event instanceof JsonEvent) {
+        if (event instanceof MetricEvent) {
             events.add(event);
             len += event.length();
         } else {
-            throw new HecException("only JsonEvent can be add to JsonEventBatch");
+            throw new HecException("only MetricEvent can be add to MetricEventBatch");
         }
     }
 
@@ -43,7 +43,7 @@ public final class JsonEventBatch extends EventBatch {
 
     @Override
     public EventBatch createFromThis() {
-        return new JsonEventBatch();
+        return new MetricEventBatch();
     }
 
     @Override
@@ -55,9 +55,9 @@ public final class JsonEventBatch extends EventBatch {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof JsonEventBatch) {
-            final JsonEventBatch other = (JsonEventBatch) obj;
-            return endpoint.equals(endpoint);
+        if (obj instanceof MetricEventBatch) {
+            final MetricEventBatch other = (MetricEventBatch) obj;
+            return endpoint.equals(other.getRestEndpoint());
         }
         return false;
     }

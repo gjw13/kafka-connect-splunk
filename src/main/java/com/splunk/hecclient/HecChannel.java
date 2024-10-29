@@ -56,7 +56,7 @@ final class HecChannel {
 
     public void send(final EventBatch batch) {
         if (chField != null) {
-            batch.addExtraFields(chField);
+            batch.addExtraMetadata(chField);
         }
         indexer.send(batch);
     }

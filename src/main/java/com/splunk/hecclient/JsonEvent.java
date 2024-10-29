@@ -16,6 +16,7 @@
 package com.splunk.hecclient;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,8 +25,8 @@ import java.util.Map;
  *  JSONEvent is used as the Object to represented Splunk events when the /services/collector/event HEC endpoint is to
  *  be used for Splunk ingestion.
  * <p>
- * This class contains overridden methods from Event which will allow adding extra fields to events,
- * retrieving extra fields, converting the JsonEvent object to a String and converting the JsonEvent object into a byte
+ * This class contains overridden methods from Event which will allow adding extra metadata to events,
+ * retrieving extra metadata, converting the JsonEvent object to a String and converting the JsonEvent object into a byte
  * representation.
  * @see         Event
  * @version     1.0
@@ -33,7 +34,7 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public final class JsonEvent extends Event {
-    private Map<String, String> fields;
+    private Map<String, String> metadata;
 
     /**
      * Creates a new json event.
@@ -57,59 +58,59 @@ public final class JsonEvent extends Event {
     }
 
     /**
-     * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
+     * ExtraMetadata consist of custom metadata used for enriching events to be bundled in with the base Event. This can
      * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
-     * This differs from the setFields method as it will append any extra fields to the the
+     * This differs from the setMetadata method as it will append any extra metadata to the the
      *
-     * @param extraFields  Object representation of the event with associated meta-data.
+     * @param extraMetadata  Object representation of the event with associated meta-data.
      * @return             Current representation of JsonEvent.
      * @see                JsonEvent
      * @since              1.0
      */
     @Override
-    public JsonEvent addFields(final Map<String, String> extraFields) {
-        if (extraFields == null || extraFields.isEmpty()) {
+    public JsonEvent addMetadata(final Map<String, String> extraMetadata) {
+        if (extraMetadata == null || extraMetadata.isEmpty()) {
             return this;
         }
 
-        if (fields == null) {
-            fields = new HashMap<>();
+        if (metadata == null) {
+            metadata = new HashMap<>();
         }
 
-        fields.putAll(extraFields);
+        metadata.putAll(extraMetadata);
         invalidate();
 
         return this;
     }
 
     /**
-     * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
+     * ExtraMetadata consist of custom metadata used for enriching events to be bundled in with the base Event. This can
      * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
-     * This differs from the addFields method as it will replace any fields that are currently associated to this object.
+     * This differs from the addMetadata method as it will replace any metadata that are currently associated to this object.
      *
-     * @param extraFields  Object representation of the event with associated meta-data.
+     * @param extraMetadata  Object representation of the event with associated meta-data.
      * @return             Current representation of JsonEvent.
      * @see                JsonEvent
      * @since              1.0
      */
     @Override
-    public JsonEvent setFields(final Map<String, String> extraFields) {
-        fields = extraFields;
+    public JsonEvent setMetadata(final Map<String, String> extraMetadata) {
+        metadata = extraMetadata;
         invalidate();
         return this;
     }
 
     /**
-     * ExtraFields consist of custom fields used for enriching events to be bundled in with the base Event. This can
+     * ExtraMetadata consist of custom metadata used for enriching events to be bundled in with the base Event. This can
      * used to categorize certain events, allowing flexibility of searching for this field after ingested in Splunk.
      *
-     * @return             Map representation of fields
+     * @return             Map representation of metadata
      * @see                Map
      * @since              1.0
      */
     @Override
-    public Map<String, String> getFields() {
-        return fields;
+    public Map<String, String> getMetadata() {
+        return metadata;
     }
 
     /**
@@ -129,6 +130,12 @@ public final class JsonEvent extends Event {
             log.error("failed to json serlized JsonEvent", ex);
             throw new HecException("failed to json serialized JsonEvent", ex);
         }
+    }
+
+    @Override
+    @JsonIgnore
+    public Object getFields() {
+        return null;
     }
 
     /**

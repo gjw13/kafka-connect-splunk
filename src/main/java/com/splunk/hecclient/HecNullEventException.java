@@ -16,7 +16,7 @@
 package com.splunk.hecclient;
 
 /**
- * HecNullEventException is an exception which is triggered during the creation of an Event(JsonEvent or RawEvent)
+ * HecNullEventException is an exception which is triggered during the creation of an Event(JsonEvent, RawEvent, or MetricEvent)
  * with no Event Data.
  *
  * @version     1.1.0

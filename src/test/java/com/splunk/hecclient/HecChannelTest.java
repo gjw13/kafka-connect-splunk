@@ -64,7 +64,7 @@ public class HecChannelTest {
         Event event = new JsonEvent("ni", "hao");
         batch.add(event);
         ch.send(batch);
-        Assert.assertEquals(ch.getId(), event.getFields().get("hec-channel"));
+        Assert.assertEquals(ch.getId(), event.getMetadata().get("hec-channel"));
 
         // disable channel tracking
         ch.setTracking(false);
@@ -74,7 +74,7 @@ public class HecChannelTest {
         event = new JsonEvent("ni", "hao");
         batch.add(event);
         ch.send(batch);
-        Assert.assertNull(event.getFields());
+        Assert.assertNull(event.getMetadata());
     }
 
     @Test
